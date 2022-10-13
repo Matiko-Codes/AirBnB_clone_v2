@@ -7,8 +7,10 @@ from sqlalchemy import Column, String, ForeignKey, Integer, Float
 
 class Amenity(BaseModel, Base):
     """Defines a class Amenity
+
     Attributes:
         __tablename__ (str): amenities
+        
         name (str): name of amenity.
     """
 
