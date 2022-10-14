@@ -3,8 +3,8 @@
 import uuid
 import models
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, MetaData
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy import Column, String, DateTime
 
 Base = declarative_base()
 
@@ -14,9 +14,10 @@ class BaseModel:
     for other classes
     """
 
-    id = Column(String(60), primary_key=True)
-    created_at = Column(DateTime, default=datetime.utcnow(), nullable=False)
-    updated_at = Column(DateTime, default=datetime.utcnow(), nullable=False)
+    # initialize database columns
+    id = Column(String(60), nullable=False, primary_key=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow())
+    updated_at = Column(DateTime, nullable=False, default=created_at)
 
     def __init__(self, *args, **kwargs):
         """Instantiation of base model class
@@ -29,14 +30,16 @@ class BaseModel:
             updated_at: updated date
         """
         if kwargs:
+            if 'id' not in kwargs:
+                self.id = str(uuid.uuid4())
+
             for key, value in kwargs.items():
                 if key == "created_at" or key == "updated_at":
                     value = datetime.strptime(value, "%Y-%m-%dT%H:%M:%S.%f")
                 if key != "__class__":
                     setattr(self, key, value)
-            if "id" not in kwargs:
-                self.id = str(uuid.uuid4())
-            if "created_at" not in kwargs:
+
+            if 'created_at' not in kwargs:
                 self.created_at = self.updated_at = datetime.now()
         else:
             self.id = str(uuid.uuid4())
@@ -62,20 +65,24 @@ class BaseModel:
         models.storage.new(self)
         models.storage.save()
 
+    def delete(self):
+        """Delete current instance from storage
+        """
+        models.storage.delete(self)
+
     def to_dict(self):
         """creates dictionary of the class  and returns
         Return:
             returns a dictionary of all the key values in __dict__
         """
         my_dict = dict(self.__dict__)
+
+        if '_sa_instance_state' in my_dict:
+            del my_dict['_sa_instance_state']
+
         my_dict["__class__"] = str(type(self).__name__)
+
         my_dict["created_at"] = self.created_at.isoformat()
         my_dict["updated_at"] = self.updated_at.isoformat()
 
-        if "_sa_instance_state" in my_dict:
-            my_dict.pop("_sa_instance_state", None)
         return my_dict
-
-    def delete(self):
-        """ Deletes Current Instance from the storage models.storage """
-        models.storage.delete(self)
